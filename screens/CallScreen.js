@@ -20,6 +20,9 @@ import {
   registerGlobals,
 } from 'react-native-webrtc';
 
+const STUN_SERVER = 'stun:signal.callshark.ru:8888/';
+const SOCKET_URL = 'wss://test.callshark.ru/back';
+
 export default function CallScreen({navigation, ...props}) {
   let name;
   let connectedUser;
@@ -29,14 +32,15 @@ export default function CallScreen({navigation, ...props}) {
   // Video Scrs
   const [localStream, setLocalStream] = useState({toURL: () => null});
   const [remoteStream, setRemoteStream] = useState({toURL: () => null});
-  const [conn, setConn] = useState(new WebSocket('ws://3.20.188.26:8080'));
+  const [conn, setConn] = useState(new WebSocket(SOCKET_URL));//,'ws:///10.0.2.2:8080' {transports: ['websocket']}
   const [yourConn, setYourConn] = useState(
     //change the config as you need
     new RTCPeerConnection({
       iceServers: [
-        {
-          urls: 'stun:stun.l.google.com:19302',  
-        }, {
+        // {
+        //   urls: 'stun:stun.l.google.com:19302',  
+        // },
+         {
           urls: 'stun:stun1.l.google.com:19302',    
         }, {
           urls: 'stun:stun2.l.google.com:19302',    
@@ -89,7 +93,7 @@ export default function CallScreen({navigation, ...props}) {
         console.log('InApp Caller ---------------------->', err);
       }
 
-      console.log(InCallManager);
+      console.log(InCallManager);//tut
 
       send({
         type: 'login',
@@ -147,6 +151,8 @@ export default function CallScreen({navigation, ...props}) {
     conn.onerror = function(err) {
       console.log('Got error', err);
     };
+    // conn.onclose=function(e){
+    //   console.log("WebSocket Error: " , e);}
     /**
      * Socjket Signalling Ends
      */
