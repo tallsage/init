@@ -9,6 +9,9 @@ import {useFocusEffect} from '@react-navigation/native';
   
 import InCallManager from 'react-native-incall-manager';
 
+import Peer from 'react-native-peerjs';
+import io, { Socket } from 'socket.io-client';
+
 import {
   RTCPeerConnection,
   RTCIceCandidate,
@@ -24,6 +27,7 @@ const STUN_SERVER = 'stun:signal.callshark.ru:8888/';
 const SOCKET_URL = 'wss://test.callshark.ru/back';
 
 export default function CallScreen({navigation, ...props}) {
+
   let name;
   let connectedUser;
   const [userId, setUserId] = useState('');
@@ -32,23 +36,28 @@ export default function CallScreen({navigation, ...props}) {
   // Video Scrs
   const [localStream, setLocalStream] = useState({toURL: () => null});
   const [remoteStream, setRemoteStream] = useState({toURL: () => null});
-  const [conn, setConn] = useState(new WebSocket(SOCKET_URL));//,'ws:///10.0.2.2:8080' {transports: ['websocket']}
-  const [yourConn, setYourConn] = useState(
-    //change the config as you need
-    new RTCPeerConnection({
-      iceServers: [
-        // {
-        //   urls: 'stun:stun.l.google.com:19302',  
-        // },
-         {
-          urls: 'stun:stun1.l.google.com:19302',    
-        }, {
-          urls: 'stun:stun2.l.google.com:19302',    
-        }
 
+  const [conn, setConn] = useState(new WebSocket(SOCKET_URL));
+  const [peer, setPeer] = useState(new Peer()) 
+
+  const [peerId, setPeerId] = useState('')
+
+  const yourConn = new RTCPeerConnection({
+      iceServers: [
+        {
+          urls: STUN_SERVER,
+        },
+        {
+          urls: "turn:srv3.callshark.ru:80?transport=tcp",
+          username: "username1",
+          credential: "kfpolser"
+      }
       ],
-    }),
-  );
+      iceTransportPolicy: 'all',
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require'
+    })
+
 
   const [offer, setOffer] = useState(null);
 
@@ -93,7 +102,7 @@ export default function CallScreen({navigation, ...props}) {
         console.log('InApp Caller ---------------------->', err);
       }
 
-      console.log(InCallManager);//tut
+      // console.log(InCallManager);//tut
 
       send({
         type: 'login',
@@ -113,6 +122,24 @@ export default function CallScreen({navigation, ...props}) {
       console.log('Connected to the signaling server');
       setSocketActive(true);
     };
+    
+    peer.on('open', (id) => {
+      console.log('My peer ID is: ' + id);
+      setPeerId(id)
+      setSocketActive(true);
+    });
+
+    var con = peer.connect();
+    peer.on('connection', (con) => {
+      con.on('data', (data) => {
+        // Will print 'hi!'
+        console.log(data);
+      });
+      con.on('open', () => {
+        con.send('hello!');
+      });
+    });
+
     //when we got a message from a signaling server
     conn.onmessage = msg => {
       let data;
